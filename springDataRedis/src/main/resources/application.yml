@@ -3,9 +3,10 @@ spring:
     host: 192.168.40.128
     port: 6379
     password: redis2002zmlmf
-    jedis:
+    lettuce:
       pool:
         max-active: 8
         max-idle: 8
         min-idle: 0
         max-wait: 1000ms
+
