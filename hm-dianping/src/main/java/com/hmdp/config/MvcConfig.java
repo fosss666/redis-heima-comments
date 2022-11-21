@@ -19,7 +19,8 @@ public class MvcConfig implements WebMvcConfigurer {
                         "/upload/**",
                         "/blog/hot",
                         "/user/code",
-                        "/user/login"
+                        "/user/login",
+                        "/user/logout"
                 );
     }
 }
