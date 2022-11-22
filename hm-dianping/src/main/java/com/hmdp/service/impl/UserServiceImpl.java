@@ -93,7 +93,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         //将user转为map
         Map<String, Object> hashMap = new HashMap<>();
-        hashMap.put("id", user.getId());
+        hashMap.put("id", user.getId().toString());
         hashMap.put("nickname", user.getNickName());
         hashMap.put("icon", user.getIcon());
 
