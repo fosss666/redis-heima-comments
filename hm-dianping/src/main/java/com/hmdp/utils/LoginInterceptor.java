@@ -28,51 +28,17 @@ import static net.sf.jsqlparser.util.validation.metadata.NamedObject.user;
  * 在实际的系统设计中，我们肯定不会采用上面所说的这种方式，而是使用ThreadLocal，我们会选择在拦截器的业务中，
  * 获取到保存的用户信息，然后存入ThreadLocal，那么当前线程在任何地方如果需要拿到用户信息都可以使用ThreadLocal
  * 的get()方法 (异步程序中ThreadLocal是不可靠的)
+ * <p>
+ * 这个类专门用于拦截
  */
 public class LoginInterceptor implements HandlerInterceptor {
-    //注意拦截器中无法注入
-    private StringRedisTemplate stringRedisTemplate;
-
-    public LoginInterceptor(StringRedisTemplate stringRedisTemplate) {
-        this.stringRedisTemplate = stringRedisTemplate;
-    }
-
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-//        //从session中获取用户信息
-//        User user = (User) request.getSession().getAttribute("user");
-
-        //获取token
-        String token = request.getHeader("authorization");//请求头的名字是和前端对应的
-        if (StringUtils.isEmpty(token)) {
+        if (UserHolder.getUser() == null) {
             response.setStatus(401);
             return false;
         }
-        //从redis中获取用户信息
-        Map<Object, Object> userMap = stringRedisTemplate.opsForHash().entries(LOGIN_USER_KEY + token);
-
-        if (userMap.isEmpty()) {
-            //没有登录，进行拦截
-            response.setStatus(401);
-            return false;
-        }
-        //转为UserDTO
-        //登录了，存入线程
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(Long.parseLong(userMap.get("id").toString()));
-        userDTO.setNickName((String) userMap.get("nickname"));
-        userDTO.setIcon((String) userMap.get("icon"));
-        UserHolder.saveUser(userDTO);
-
-        //刷新token有效期，使用户在登录状态进行相关操作时redis有效日期保持为30分钟
-        stringRedisTemplate.expire(LOGIN_USER_KEY + token, LOGIN_USER_TTL, TimeUnit.MINUTES);
         return true;
-    }
-
-    @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        //清除线程
-        UserHolder.removeUser();
     }
 }
 
