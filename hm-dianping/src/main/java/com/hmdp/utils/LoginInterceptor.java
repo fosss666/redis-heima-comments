@@ -13,8 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.LOGIN_USER_KEY;
+import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
 import static net.sf.jsqlparser.util.validation.metadata.NamedObject.user;
 
 /**
@@ -61,6 +63,9 @@ public class LoginInterceptor implements HandlerInterceptor {
         userDTO.setNickName((String) userMap.get("nickname"));
         userDTO.setIcon((String) userMap.get("icon"));
         UserHolder.saveUser(userDTO);
+
+        //刷新token有效期，使用户在登录状态进行相关操作时redis有效日期保持为30分钟
+        stringRedisTemplate.expire(LOGIN_USER_KEY + token, LOGIN_USER_TTL, TimeUnit.MINUTES);
         return true;
     }
 
