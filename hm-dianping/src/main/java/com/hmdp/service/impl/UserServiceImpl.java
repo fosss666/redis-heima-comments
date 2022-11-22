@@ -8,6 +8,7 @@ import com.hmdp.dto.Result;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.JwtUtils;
 import com.hmdp.utils.RegexUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -15,10 +16,11 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.hmdp.utils.RedisConstants.LOGIN_CODE_KEY;
-import static com.hmdp.utils.RedisConstants.LOGIN_CODE_TTL;
+import static com.hmdp.utils.RedisConstants.*;
 import static com.hmdp.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 
 /**
@@ -66,7 +68,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
 
         //获取code
-        Object code = session.getAttribute(loginForm.getPhone());
+//        Object code = session.getAttribute(loginForm.getPhone());
+        String code = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + loginForm.getPhone());
 
         //判断验证码是否存在和与输入的验证码是否一样，不存在说明发送验证码后手机号被修改了
         if (code == null || !loginForm.getCode().equals(code.toString())) {
@@ -82,10 +85,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user = addUserWithPhone(loginForm);
         }
 
-        //将用户信息保存到session中
-        session.setAttribute("user", user);
+//        //将用户信息保存到session中
+//        session.setAttribute("user", user);
 
-        return Result.ok();
+        //获取token
+        String token = JwtUtils.getJwtToken(user.getId().toString(), user.getNickName());
+
+        //将user转为map
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put("id", user.getId());
+        hashMap.put("nickname", user.getNickName());
+        hashMap.put("icon", user.getIcon());
+
+        //将用户信息保存到redis中
+        stringRedisTemplate.opsForHash().putAll(LOGIN_USER_KEY + token, hashMap);
+        //设置过期时间
+        stringRedisTemplate.expire(LOGIN_USER_KEY + token, LOGIN_USER_TTL, TimeUnit.MINUTES);
+        //返回携带token
+        return Result.ok(token);
     }
 
     //注册新用户
