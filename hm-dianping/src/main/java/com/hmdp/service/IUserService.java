@@ -17,7 +17,9 @@ import javax.servlet.http.HttpSession;
  */
 public interface IUserService extends IService<User> {
     // 发送短信验证码并保存验证码
-    Result sendCode(String phone, HttpSession session);
+//    Result sendCode(String phone, HttpSession session);
+    Result sendCode(String phone);
     // 实现登录功能
-    Result login(LoginFormDTO loginForm, HttpSession session);
+//    Result login(LoginFormDTO loginForm, HttpSession session);
+    Result login(LoginFormDTO loginForm);
 }

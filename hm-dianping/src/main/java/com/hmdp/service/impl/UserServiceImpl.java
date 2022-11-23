@@ -39,7 +39,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     // 发送短信验证码并保存验证码
     @Override
-    public Result sendCode(String phone, HttpSession session) {
+//    public Result sendCode(String phone, HttpSession session) {
+    public Result sendCode(String phone) {
         //检验手机号是否合法
         if (RegexUtils.isPhoneInvalid(phone)) {
             return Result.fail("请输入正确的手机号码");
@@ -61,7 +62,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     // 实现登录功能
     @Override
-    public Result login(LoginFormDTO loginForm, HttpSession session) {
+//    public Result login(LoginFormDTO loginForm, HttpSession session) {
+    public Result login(LoginFormDTO loginForm) {
         //手机号格式验证
         if (RegexUtils.isPhoneInvalid(loginForm.getPhone())) {
             return Result.fail("请输入正确的手机号码");
