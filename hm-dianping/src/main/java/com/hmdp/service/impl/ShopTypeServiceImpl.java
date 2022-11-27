@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.SHOP_TYPE_KEY;
 import static com.hmdp.utils.RedisConstants.SHOP_TYPE_TTL;
@@ -44,7 +45,7 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
         LambdaQueryWrapper<ShopType> wrapper=new LambdaQueryWrapper<>();
         wrapper.orderByDesc(ShopType::getSort);
         List<ShopType> shopTypes = baseMapper.selectList(wrapper);
-        stringRedisTemplate.opsForValue().set(SHOP_TYPE_KEY,JSONUtil.toJsonStr(shopTypes),SHOP_TYPE_TTL);
+        stringRedisTemplate.opsForValue().set(SHOP_TYPE_KEY,JSONUtil.toJsonStr(shopTypes),SHOP_TYPE_TTL, TimeUnit.MINUTES);
 
         return shopTypes;
     }
