@@ -14,6 +14,6 @@ class HmDianPingApplicationTests {
 
     @Test
     void testInsert(){
-        shopService.saveWithExpire(1L,10L);
+        shopService.saveWithExpire("10",10L);
     }
 }

@@ -1,6 +1,7 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.core.util.BooleanUtil;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
@@ -18,6 +19,8 @@ import javax.annotation.Resource;
 
 import java.security.Key;
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.*;
@@ -43,8 +46,12 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //解决缓存穿透
         //Shop shop = queryWithWalkThrough(id);
 
-        //互斥锁解决缓存击穿和缓存穿透
-        Shop shop = queryWithLock(id);
+        //互斥锁解决缓存击穿
+        //Shop shop = queryWithLock(id);
+
+        //逻辑过期时间解决缓存击穿
+        Shop shop = queryWithExpire(id);
+
         if (shop == null) {
             return Result.fail("店铺不存在");
         }
@@ -52,8 +59,55 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         return Result.ok(shop);
     }
 
+    //独立线程
+    private static final ExecutorService CACHE_REBUILD_EXECUTOR= Executors.newFixedThreadPool(10);
+
     /**
-     * 解决缓存击穿的逻辑+缓存穿透
+     * 解决缓存击穿的逻辑(用逻辑过期时间)+缓存穿透
+     */
+    public Shop queryWithExpire(String id) {
+        String key = CACHE_SHOP_KEY + id;
+        //先从redis中查询
+        String shopJson = stringRedisTemplate.opsForValue().get(key);
+        //判断是否命中
+        if (StringUtils.isEmpty(shopJson)) {
+            //没有命中
+            return null;
+        }
+
+        //命中，判断缓存是否过期
+        //获取缓存的数据和逻辑过期时间
+        RedisData redisData = JSONUtil.toBean(shopJson, RedisData.class);
+        LocalDateTime expireTime = redisData.getExpireTime();
+        Object data = redisData.getData();
+        Shop shop = JSONUtil.toBean((JSONObject) data, Shop.class);
+
+        //判断是否过期
+        if (expireTime.isAfter(LocalDateTime.now())) {
+            //没有过期，返回商铺信息
+            return shop;
+        }
+
+        //过期，尝试获取互斥锁
+        String lockKey=LOCK_SHOP_KEY+id;
+        boolean flag = tryLock(lockKey);
+        if(flag){
+            //获取成功，开启独立线程,实现缓存的重建
+            CACHE_REBUILD_EXECUTOR.execute(()->{
+                try {
+                    saveWithExpire(id,30L*60);
+                } finally {
+                    //释放锁
+                    unlock(lockKey);
+                }
+            });
+        }
+        //返回过期的商户信息
+        return shop;
+    }
+
+    /**
+     * 解决缓存击穿的逻辑（用互斥锁）+缓存穿透
      */
     public Shop queryWithLock(String id) {
         String key = CACHE_SHOP_KEY + id;
@@ -155,7 +209,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     /**
      * 将数据用逻辑过期时间存入redis
      */
-    public void saveWithExpire(Long id, Long time) {
+    public void saveWithExpire(String id, Long time) {
         //从数据库查询数据
         Shop shop = baseMapper.selectById(id);
         //封装对象
