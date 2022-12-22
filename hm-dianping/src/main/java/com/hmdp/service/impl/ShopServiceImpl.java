@@ -57,7 +57,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         Shop shop = baseMapper.selectById(id);
         //判断非空
         if (shop == null) {
-            //向缓存中存储空字符串
+            //向缓存中存储空字符串，目的是解决缓存穿透问题（缓存和数据库中都没有该数据）
             stringRedisTemplate.opsForValue().set(key, "", CACHE_NULL_TTL,TimeUnit.MINUTES);//防止缓存击穿
             return null;
         }
