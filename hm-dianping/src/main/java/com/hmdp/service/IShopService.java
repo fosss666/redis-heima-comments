@@ -17,7 +17,7 @@ public interface IShopService extends IService<Shop> {
      * @param id 商铺id
      * @return 商铺详情数据
      */
-    Result queryShopById(Long id);
+    Result queryShopById(String id);
     /**
      * 更新商铺信息
      *
