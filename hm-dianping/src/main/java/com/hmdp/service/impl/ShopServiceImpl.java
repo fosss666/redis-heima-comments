@@ -7,6 +7,8 @@ import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.utils.RedisConstants;
+import com.hmdp.utils.RedisData;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,8 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 
+import java.security.Key;
+import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.*;
@@ -146,6 +150,20 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
      */
     private void unlock(String key) {
         stringRedisTemplate.delete(key);
+    }
+
+    /**
+     * 将数据用逻辑过期时间存入redis
+     */
+    public void saveWithExpire(Long id, Long time) {
+        //从数据库查询数据
+        Shop shop = baseMapper.selectById(id);
+        //封装对象
+        RedisData redisData = new RedisData();
+        redisData.setExpireTime(LocalDateTime.now().plusSeconds(time));
+        redisData.setData(shop);
+        //存入redis
+        stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY + id, JSONUtil.toJsonStr(redisData));
     }
 
     /**
