@@ -37,17 +37,74 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Override
     public Result queryShopById(String id) {
         //解决缓存穿透
-        Shop shop = queryWithWalkThrough(id);
+        //Shop shop = queryWithWalkThrough(id);
 
-        //解决缓存击穿
+        //互斥锁解决缓存击穿和缓存穿透
+        Shop shop = queryWithLock(id);
+        if (shop == null) {
+            return Result.fail("店铺不存在");
+        }
 
         return Result.ok(shop);
     }
 
     /**
+     * 解决缓存击穿的逻辑+缓存穿透
+     */
+    public Shop queryWithLock(String id) {
+        String key = CACHE_SHOP_KEY + id;
+        //先从redis中查询
+        String shopJson = stringRedisTemplate.opsForValue().get(key);
+        //判断非空
+        if (!StringUtils.isEmpty(shopJson)) {
+            //转成对象返回
+            Shop shop = JSONUtil.toBean(shopJson, Shop.class);
+            return shop;
+        }
+
+        if ("".equals(shopJson)) {//防止缓存击穿
+            //数据为空字符串，报错
+            return null;
+        }
+        String lockKey = null;
+        Shop shop = null;
+
+        try {
+            //缓存中没有数据，则从数据库中查询
+            //锁的key
+            lockKey = LOCK_SHOP_KEY + id;
+            boolean flag = tryLock(lockKey);
+            //判断加锁是否成功
+            if (!flag) {
+                //加锁失败,休眠后重试
+                Thread.sleep(LOCK_SHOP_TTL);
+                queryWithLock(id);
+            }
+
+            //加锁成功，到数据库中查询数据
+            shop = baseMapper.selectById(id);
+            //判断非空
+            if (shop == null) {
+                //向缓存中存储空字符串，目的是解决缓存穿透问题（缓存和数据库中都没有该数据）
+                stringRedisTemplate.opsForValue().set(key, "", CACHE_NULL_TTL, TimeUnit.MINUTES);//防止缓存击穿
+                return null;
+            }
+            //放入缓存中
+            stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            //解锁
+            unlock(lockKey);
+        }
+
+        return shop;
+    }
+
+    /**
      * 解决缓存穿透的逻辑
      */
-    public Shop queryWithWalkThrough(String id){
+    public Shop queryWithWalkThrough(String id) {
         String key = CACHE_SHOP_KEY + id;
         //先从redis中查询
         String shopJson = stringRedisTemplate.opsForValue().get(key);
@@ -87,7 +144,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     /**
      * 解锁
      */
-    private void unlock(String key){
+    private void unlock(String key) {
         stringRedisTemplate.delete(key);
     }
 
