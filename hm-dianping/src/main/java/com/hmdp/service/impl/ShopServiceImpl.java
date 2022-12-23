@@ -10,6 +10,7 @@ import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RedisData;
+import com.hmdp.utils.RedisHelper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,10 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    //注入封装的工具类
+    @Resource
+    private RedisHelper redisHelper;
+
     /**
      * 根据id查询商铺信息
      *
@@ -45,12 +50,17 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     public Result queryShopById(String id) {
         //解决缓存穿透
         //Shop shop = queryWithWalkThrough(id);
+            //用封装的工具类
+        //Shop shop = redisHelper.queryWithWalkThrough(id, CACHE_SHOP_KEY, Shop.class, id2 -> getById(id2), CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         //互斥锁解决缓存击穿
         //Shop shop = queryWithLock(id);
 
         //逻辑过期时间解决缓存击穿
-        Shop shop = queryWithExpire(id);
+        //Shop shop = queryWithExpire(id);
+            //用封装的工具类
+        Shop shop = redisHelper.queryWithExpire(id, CACHE_SHOP_KEY, Shop.class, id2 -> getById(id2), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+
 
         if (shop == null) {
             return Result.fail("店铺不存在");
@@ -60,7 +70,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     }
 
     //独立线程
-    private static final ExecutorService CACHE_REBUILD_EXECUTOR= Executors.newFixedThreadPool(10);
+    private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
     /**
      * 解决缓存击穿的逻辑(用逻辑过期时间)+缓存穿透
@@ -89,13 +99,13 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
 
         //过期，尝试获取互斥锁
-        String lockKey=LOCK_SHOP_KEY+id;
+        String lockKey = LOCK_SHOP_KEY + id;
         boolean flag = tryLock(lockKey);
-        if(flag){
+        if (flag) {
             //获取成功，开启独立线程,实现缓存的重建
-            CACHE_REBUILD_EXECUTOR.execute(()->{
+            CACHE_REBUILD_EXECUTOR.execute(() -> {
                 try {
-                    saveWithExpire(id,30L*60);
+                    saveWithExpire(id, 30L * 60);
                 } finally {
                     //释放锁
                     unlock(lockKey);
@@ -162,7 +172,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     /**
      * 解决缓存穿透的逻辑
      */
-    public Shop queryWithWalkThrough(String id) {
+    /*public Shop queryWithWalkThrough(String id) {
         String key = CACHE_SHOP_KEY + id;
         //先从redis中查询
         String shopJson = stringRedisTemplate.opsForValue().get(key);
@@ -190,6 +200,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
         return shop;
     }
+*/
 
     /**
      * 上锁
