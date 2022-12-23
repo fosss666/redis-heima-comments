@@ -30,6 +30,15 @@ public class BlogController {
     @Resource
     private IUserService userService;
 
+    /**
+     * 根据id获取blog
+     */
+    @GetMapping("{id}")
+    public Result getById(@PathVariable String id){
+        Blog byId = blogService.getById(id);
+        return Result.ok(byId);
+    }
+
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
         // 获取登录用户
