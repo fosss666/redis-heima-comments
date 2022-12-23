@@ -145,7 +145,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             //判断加锁是否成功
             if (!flag) {
                 //加锁失败,休眠后重试
-                Thread.sleep(LOCK_SHOP_TTL);
+                Thread.sleep(LOCK_SLEEP_TIME);
                 queryWithLock(id);
             }
 
