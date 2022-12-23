@@ -1,6 +1,7 @@
 package com.hmdp.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
@@ -48,6 +49,15 @@ public class BlogController {
         blogService.save(blog);
         // 返回id
         return Result.ok(blog.getId());
+    }
+
+    /**
+     * 根据id获取点赞数
+     */
+    @GetMapping("/likes/{id}")
+    public Result getLikesById(@PathVariable String id){
+        Blog blog = blogService.getById(id);
+        return Result.ok(blog);
     }
 
     @PutMapping("/like/{id}")
