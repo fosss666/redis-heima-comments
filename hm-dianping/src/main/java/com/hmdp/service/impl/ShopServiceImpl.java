@@ -51,7 +51,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //解决缓存穿透
         //Shop shop = queryWithWalkThrough(id);
             //用封装的工具类
-        //Shop shop = redisHelper.queryWithWalkThrough(id, CACHE_SHOP_KEY, Shop.class, id2 -> getById(id2), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        Shop shop = redisHelper.queryWithWalkThrough(id, CACHE_SHOP_KEY, Shop.class, id2 -> getById(id2), CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         //互斥锁解决缓存击穿
         //Shop shop = queryWithLock(id);
@@ -59,7 +59,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //逻辑过期时间解决缓存击穿
         //Shop shop = queryWithExpire(id);
             //用封装的工具类
-        Shop shop = redisHelper.queryWithExpire(id, CACHE_SHOP_KEY, Shop.class, id2 -> getById(id2), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        //Shop shop = redisHelper.queryWithExpire(id, CACHE_SHOP_KEY, Shop.class, id2 -> getById(id2), CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
 
         if (shop == null) {
