@@ -2,6 +2,7 @@ package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.BeanUtils;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
@@ -13,6 +14,7 @@ import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
+import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,10 +68,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
         //到这一步说明优惠券有效，减库存，增加优惠券订单
-        SeckillVoucher seckillVoucher1 = new SeckillVoucher();
-        BeanUtil.copyProperties(seckillVoucher, seckillVoucher1);
-        seckillVoucher1.setStock(stock - 1);
-        seckillVoucherService.updateById(seckillVoucher1);
+        LambdaUpdateWrapper<SeckillVoucher> queryWrapper = new LambdaUpdateWrapper<>();
+        queryWrapper.eq(SeckillVoucher::getVoucherId,voucherId)
+                .gt(SeckillVoucher::getStock,0)//乐观锁机制，解决并发安全问题（优惠券售出超出库存）,为提高抢券成功率用stock>0而不是stock=原来的stock
+                .set(SeckillVoucher::getStock,seckillVoucher.getStock()-1);
+        seckillVoucherService.update(queryWrapper);
 
         VoucherOrder voucherOrder = new VoucherOrder();
         voucherOrder.setVoucherId(voucherId);
