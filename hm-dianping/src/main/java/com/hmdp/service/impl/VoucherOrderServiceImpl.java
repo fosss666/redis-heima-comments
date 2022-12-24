@@ -15,6 +15,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import org.apache.ibatis.annotations.Select;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +39,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
      * 抢购优惠券
      */
     @Override
-    @Transactional
     public Result seckillVoucher(Long voucherId) {
         //查询该优惠券
         SeckillVoucher seckillVoucher = seckillVoucherService.getById(voucherId);
@@ -58,20 +58,33 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("优惠券已抢光");
         }
 
-        //判断当前用户是否已经拥有该优惠券
+        Long userId = UserHolder.getUser().getId();
+        synchronized (userId) {//为实现一人一单，解决并发安全问题,采用悲观锁
+            //为避免同一个类中的方法直接内部调用带事务的方法导致事务失效，采用代理
+            IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+            return proxy.createVoucherOrder(voucherId, seckillVoucher);
+        }
+    }
+
+    /**
+     * 为实现一人一单，解决并发安全问题
+     */
+    @Transactional
+    public Result createVoucherOrder(Long voucherId, SeckillVoucher seckillVoucher) {
+        //判断当前用户是否已经拥有该优惠券，实现一人一单
         Long userId = UserHolder.getUser().getId();
         LambdaQueryWrapper<VoucherOrder> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(VoucherOrder::getUserId,userId);
+        wrapper.eq(VoucherOrder::getUserId, userId);
         Integer count = baseMapper.selectCount(wrapper);
-        if(count>0){
+        if (count > 0) {
             return Result.fail("已拥有该优惠券");
         }
 
         //到这一步说明优惠券有效，减库存，增加优惠券订单
         LambdaUpdateWrapper<SeckillVoucher> queryWrapper = new LambdaUpdateWrapper<>();
-        queryWrapper.eq(SeckillVoucher::getVoucherId,voucherId)
-                .gt(SeckillVoucher::getStock,0)//乐观锁机制，解决并发安全问题（优惠券售出超出库存）,为提高抢券成功率用stock>0而不是stock=原来的stock
-                .set(SeckillVoucher::getStock,seckillVoucher.getStock()-1);
+        queryWrapper.eq(SeckillVoucher::getVoucherId, voucherId)
+                .gt(SeckillVoucher::getStock, 0)//乐观锁机制，解决并发安全问题（优惠券售出超出库存）,为提高抢券成功率用stock>0而不是stock=原来的stock
+                .set(SeckillVoucher::getStock, seckillVoucher.getStock() - 1);
         seckillVoucherService.update(queryWrapper);
 
         VoucherOrder voucherOrder = new VoucherOrder();
