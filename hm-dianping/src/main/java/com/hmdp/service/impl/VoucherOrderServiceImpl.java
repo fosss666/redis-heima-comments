@@ -13,9 +13,11 @@ import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
+import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private ISeckillVoucherService seckillVoucherService;
     @Resource
     private RedisIdWorker redisIdWorker;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 抢购优惠券
@@ -59,11 +63,31 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
         Long userId = UserHolder.getUser().getId();
-        synchronized (userId) {//为实现一人一单，解决并发安全问题,采用悲观锁
+      /*
+        synchronized (userId.toString().intern()) {//为实现一人一单，解决并发安全问题,采用悲观锁
             //为避免同一个类中的方法直接内部调用带事务的方法导致事务失效，采用代理
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId, seckillVoucher);
         }
+        */
+
+        //采用redis锁
+        SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:" + UserHolder.getUser().getId());
+        boolean flag = simpleRedisLock.tryLock(1200L);
+        //判断是否上锁成功
+        if (!flag) {
+            //没有成功
+            return Result.fail("不能重复抢购");
+        }
+
+        try {
+            IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+            return proxy.createVoucherOrder(voucherId, seckillVoucher);
+        } finally {
+            //释放锁
+            simpleRedisLock.unlock();
+        }
+
     }
 
     /**
@@ -92,6 +116,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         long orderId = redisIdWorker.nextId(voucherId.toString());
         voucherOrder.setId(orderId);
         voucherOrder.setUserId(userId);
+        voucherOrder.setPayTime(LocalDateTime.now());
         baseMapper.insert(voucherOrder);
 
         //返回订单id
