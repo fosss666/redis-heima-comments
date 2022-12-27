@@ -40,6 +40,9 @@ public class BlogController {
         return Result.ok(byId);
     }
 
+    /**
+     * 发布探店笔记
+     */
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
         // 获取登录用户
