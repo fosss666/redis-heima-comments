@@ -35,9 +35,8 @@ public class BlogController {
      * 根据id获取blog
      */
     @GetMapping("{id}")
-    public Result getById(@PathVariable String id){
-        Blog byId = blogService.getById(id);
-        return Result.ok(byId);
+    public Result getBlogById(@PathVariable String id){
+        return blogService.getBlogById(id);
     }
 
     /**

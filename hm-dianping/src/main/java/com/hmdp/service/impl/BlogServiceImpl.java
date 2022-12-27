@@ -2,9 +2,11 @@ package com.hmdp.service.impl;
 
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IUserService;
 import com.hmdp.utils.UserHolder;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,9 @@ import javax.annotation.Resource;
  */
 @Service
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
+
+    @Resource
+    private IUserService userService;
 
     // 修改点赞数量
     @Override
@@ -33,6 +38,22 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             baseMapper.updateById(blog);
         }
         return Result.ok();
+    }
+
+    /**
+     * 根据id获取blog
+     */
+    @Override
+    public Result getBlogById(String id) {
+        //查询blog
+        Blog blog = baseMapper.selectById(id);
+        //获取用户昵称头像id
+        Long userId = blog.getUserId();
+        User user = userService.getById(userId);
+        //设置
+        blog.setName(user.getNickName());
+        blog.setIcon(user.getIcon());
+        return Result.ok(blog);
     }
 }
 
