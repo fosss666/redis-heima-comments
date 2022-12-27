@@ -54,6 +54,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Resource
     private RedissonClient redissonClient;
 
+    //用于调用lua脚本
     private static final DefaultRedisScript<Long> SECKILL_ORDER;
 
     static {
