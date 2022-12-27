@@ -29,7 +29,7 @@ redis.call('incrby', stockKey, -1)
 redis.call('sadd', orderKey, userId)
 
 -- 4 存入提前在redis创建的stream组中
-redis.call('xadd', 'steam.orders', '*', 'voucherId', voucherId, 'userId', userId, 'id', orderId) -- 名称和VoucherOrder对象中一致
+redis.call('xadd', 'stream.orders', '*', 'voucherId', voucherId, 'userId', userId, 'id', orderId) -- 名称和VoucherOrder对象中一致
 return 0
 
 
