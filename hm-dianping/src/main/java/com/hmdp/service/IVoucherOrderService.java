@@ -7,9 +7,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
  * <p>
- *  服务类
+ * 服务类
  * </p>
- 
  */
 public interface IVoucherOrderService extends IService<VoucherOrder> {
     /**
@@ -17,5 +16,6 @@ public interface IVoucherOrderService extends IService<VoucherOrder> {
      */
     Result seckillVoucher(Long voucherId);
 
-    Result createVoucherOrder(Long voucherId, SeckillVoucher seckillVoucher);
+    //Result createVoucherOrder(Long voucherId, SeckillVoucher seckillVoucher);
+    void createVoucherOrder(VoucherOrder voucherOrder);
 }
