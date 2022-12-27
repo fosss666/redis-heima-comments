@@ -225,13 +225,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         Long userId = UserHolder.getUser().getId();
         //获取订单id
         long orderId = redisIdWorker.nextId(voucherId.toString());
-        //执行lua脚本
+        //执行lua脚本进行能否下单的判断和把订单信息存入redis的消息队列两个操作
         Long result = stringRedisTemplate.execute(
                 SECKILL_ORDER,
                 Collections.emptyList(),
                 voucherId.toString(), userId.toString(), String.valueOf(orderId)
         );
         //判断返回结果
+        assert result != null;
         int r = result.intValue();
         if (r != 0) {
             //下单失败
@@ -339,7 +340,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
      */
     @Transactional
     //public Result createVoucherOrder(Long voucherId, SeckillVoucher seckillVoucher) { //同步过程所需
-    public void createVoucherOrder(VoucherOrder voucherOrder) {   //异步过程所需
+    //异步过程所需
+    public void createVoucherOrder(VoucherOrder voucherOrder) {
         //判断当前用户是否已经拥有该优惠券，实现一人一单
         //Long userId = UserHolder.getUser().getId(); 不能获得
         Long userId = voucherOrder.getUserId();
