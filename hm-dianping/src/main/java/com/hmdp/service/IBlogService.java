@@ -19,4 +19,10 @@ public interface IBlogService extends IService<Blog> {
      * 根据id获取blog
      */
     Result getBlogById(String id);
+    /**
+     * 分页查询笔记
+     * @param current 当前页
+     * @return 查询到的分页数据
+     */
+    Result queryHotBlog(Integer current);
 }
