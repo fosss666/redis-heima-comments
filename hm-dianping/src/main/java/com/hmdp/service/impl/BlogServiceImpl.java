@@ -78,8 +78,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     public Result getBlogById(String id) {
         //查询并封装blog
         Blog blog = baseMapper.selectById(id);
-        blog = getBlog(blog);
-        return Result.ok(blog);
+        if (blog == null) {
+            return Result.fail("笔记不存在");
+        }
+        Blog blog1 = getBlog(blog);
+        return Result.ok(blog1);
     }
 
     /**
