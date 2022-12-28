@@ -20,7 +20,6 @@ import java.util.List;
  * <p>
  * 前端控制器
  * </p>
- 
  */
 @RestController
 @RequestMapping("/blog")
@@ -35,7 +34,7 @@ public class BlogController {
      * 根据id获取blog
      */
     @GetMapping("{id}")
-    public Result getBlogById(@PathVariable String id){
+    public Result getBlogById(@PathVariable String id) {
         return blogService.getBlogById(id);
     }
 
@@ -54,12 +53,11 @@ public class BlogController {
     }
 
     /**
-     * 根据id获取点赞数
+     * 根据id获取前5个点赞的用户的部分信息
      */
     @GetMapping("/likes/{id}")
-    public Result getLikesById(@PathVariable String id){
-        Blog blog = blogService.getById(id);
-        return Result.ok(blog);
+    public Result getLikesById(@PathVariable String id) {
+        return blogService.getLikesById(id);
     }
 
     /**
@@ -85,6 +83,7 @@ public class BlogController {
 
     /**
      * 分页查询笔记
+     *
      * @param current 当前页
      * @return 查询到的分页数据
      */
