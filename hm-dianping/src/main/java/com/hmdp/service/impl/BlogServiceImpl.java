@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.hmdp.utils.RedisConstants.BLOG_LIKED_KEY;
@@ -102,10 +103,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<Blog> records = blogPage.getRecords();
 
         // 查询用户
+        List<Blog> resultList = new ArrayList<>();
         for (Blog blog : records) {
-            blog = getBlog(blog);
+            resultList.add(getBlog(blog));
         }
-        return Result.ok(records);
+        return Result.ok(resultList);
     }
 
     //查询并封装blog
