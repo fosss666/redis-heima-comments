@@ -3,6 +3,7 @@ package com.hmdp.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -168,6 +170,20 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             userDtoList.add(userDTO);
         }
         return Result.ok(userDtoList);
+    }
+
+    /**
+     * 分页查询某一用户的博客
+     */
+    @Override
+    public Result getPageOfUserBlogs(Long id, Integer current) {
+        IPage<Blog> page = new Page<>(current, MAX_PAGE_SIZE);
+        LambdaQueryWrapper<Blog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Blog::getUserId, id);
+        IPage<Blog> blogs = baseMapper.selectPage(page, wrapper);
+        List<Blog> records = blogs.getRecords();
+
+        return Result.ok(records == null ? Collections.emptyList() : records);
     }
 
 }

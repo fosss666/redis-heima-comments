@@ -92,4 +92,12 @@ public class BlogController {
 
         return blogService.queryHotBlog(current);
     }
+
+    /**
+     * 分页查询某一用户的博客
+     */
+    @GetMapping("/of/user")
+    public Result getPageOfUserBlogs(@RequestParam("id") Long id, @RequestParam(value = "current", defaultValue = "1") Integer current) {
+        return blogService.getPageOfUserBlogs(id, current);
+    }
 }

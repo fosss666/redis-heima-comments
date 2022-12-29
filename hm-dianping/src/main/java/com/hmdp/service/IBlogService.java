@@ -29,4 +29,8 @@ public interface IBlogService extends IService<Blog> {
      * 根据id获取前5个点赞的用户的部分信息
      */
     Result getLikesById(String id);
+    /**
+     * 分页查询某一用户的博客
+     */
+    Result getPageOfUserBlogs(Long id, Integer current);
 }
