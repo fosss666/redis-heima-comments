@@ -151,7 +151,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         //从sortedSet集合中获取前5个点赞的用户
         Set<String> userSet = stringRedisTemplate.opsForZSet().range(key, 0, 4);
         if (userSet == null || userSet.isEmpty()) {
-            return Result.ok();
+            return Result.ok(Collections.emptyList());
         }
         //获取user
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();

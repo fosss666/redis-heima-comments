@@ -99,7 +99,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                             StreamOffset.create(key, ReadOffset.lastConsumed())
                     );
                     // 判断订单集合是否为空
-                    if (orderList.isEmpty() || orderList == null) {
+                    if (orderList == null||orderList.isEmpty()) {
                         //订单为空，进入下一轮
                         continue;
                     }

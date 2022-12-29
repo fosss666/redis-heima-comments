@@ -21,4 +21,8 @@ public interface IFollowService extends IService<Follow> {
      * 是否关注
      */
     Result isFollow(String id);
+    /**
+     * 获取共同关注
+     */
+    Result togetherFollow(Long id);
 }

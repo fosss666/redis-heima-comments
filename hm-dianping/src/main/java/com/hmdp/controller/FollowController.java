@@ -22,7 +22,8 @@ public class FollowController {
 
     /**
      * 关注取关
-     * @param id 被关注者的id
+     *
+     * @param id       被关注者的id
      * @param isFollow true 关注  false 取关
      */
     @PutMapping("/{id}/{isFollow}")
@@ -37,4 +38,33 @@ public class FollowController {
     public Result isFollow(@PathVariable String id) {
         return followService.isFollow(id);
     }
+
+    /**
+     * 获取共同关注
+     */
+    @GetMapping("/common/{id}")
+    public Result togetherFollow(@PathVariable("id") Long id) {
+        return followService.togetherFollow(id);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
