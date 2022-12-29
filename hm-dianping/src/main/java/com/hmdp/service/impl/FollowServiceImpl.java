@@ -46,7 +46,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
     public Result follow(Long id, Boolean isFollow) {
         //获取当前用户id
         Long userId = UserHolder.getUser().getId();
-        String key = FOLLOW_AND_ISFOLLOW + UserHolder.getUser().getId();
+        String key = FOLLOW_AND_ISFOLLOW + userId;
         //判断应关注还是取关
         if (isFollow) {
             //关注，添加follow
@@ -73,10 +73,14 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
     /**
      * 是否关注
+     * @param id  被关注者的id
      */
     @Override
     public Result isFollow(String id) {
-        return null;
+        LambdaQueryWrapper<Follow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Follow::getUserId, UserHolder.getUser().getId()).eq(Follow::getFollowUserId, id);
+        Integer count = baseMapper.selectCount(wrapper);
+        return Result.ok(count > 0);
     }
 
     /**
