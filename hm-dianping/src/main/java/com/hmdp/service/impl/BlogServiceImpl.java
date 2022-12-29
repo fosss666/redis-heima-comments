@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.Follow;
@@ -18,6 +19,7 @@ import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -228,12 +230,81 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         UserDTO user = UserHolder.getUser();
         // 根据用户查询
         LambdaQueryWrapper<Blog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Blog::getUserId, user.getId());
+        wrapper.eq(Blog::getUserId, user.getId()).orderByDesc(Blog::getCreateTime);
         IPage<Blog> page = new Page<>(current, 3);
         baseMapper.selectPage(page, wrapper);
         // 获取当前页数据
         List<Blog> records = page.getRecords();
         return Result.ok(records);
+    }
+
+    /**
+     * 滚动分页查询关注的用户的笔记
+     */
+    @Override
+    public Result getFollowBlogs(Long lastId, Integer offset) {
+        Long userId = UserHolder.getUser().getId();
+        //获取当前用户关注的人的笔记id
+        String key = FEED_KEY + userId;
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet().reverseRangeByScoreWithScores(
+                key,
+                0,//不用管，时间戳的最小值
+                lastId,//已查询到的笔记的时间戳的最大值
+                offset,
+                3
+        );
+        //健壮性判断
+        if (typedTuples == null || typedTuples.isEmpty()) {
+            return Result.ok();
+        }
+        //需返回笔记，minTime，offset
+        ScrollResult scrollResult = new ScrollResult();
+        //笔记id集合
+        List<Long> blogIds = new ArrayList<>(typedTuples.size());
+        //记录最小的时间戳
+        long minTime = 0;
+        //记录score相同的个数
+        int os = 1;
+        for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
+            //获取所有笔记的id
+            String id = typedTuple.getValue();
+            blogIds.add(Long.valueOf(id));
+            //获取score(时间戳)，并找到最小的,即遍历的最后一个
+            long time = typedTuple.getScore().longValue();
+            if (minTime == time) {
+                os++;
+            } else {
+                minTime = time;
+            }
+        }
+        //根据笔记id查询笔记
+        StringBuilder sb = new StringBuilder();
+        int size = 1;
+        for (Long blogId : blogIds) {
+            if (size != blogIds.size()) {
+                sb.append(blogId + ",");
+                size++;
+            } else {
+                sb.append(blogId);
+            }
+        }
+        String idsStr = sb.toString();
+
+        List<Blog> blogList = new ArrayList<>();
+        for (Long blogId : blogIds) {
+            LambdaUpdateWrapper<Blog> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.eq(Blog::getId, blogId).last("order by field(id," + idsStr + ")");
+            Blog blog = baseMapper.selectOne(wrapper);
+            blogList.add(blog);
+        }
+        List<Blog> blogs = new ArrayList<>();
+        for (Blog blog : blogList) {
+            blogs.add(getBlog(blog));
+        }
+        scrollResult.setList(blogs);
+        scrollResult.setMinTime(minTime);
+        scrollResult.setOffset(os);
+        return Result.ok(scrollResult);
     }
 
 }

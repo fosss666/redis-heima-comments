@@ -90,4 +90,27 @@ public class BlogController {
     public Result getPageOfUserBlogs(@RequestParam("id") Long id, @RequestParam(value = "current", defaultValue = "1") Integer current) {
         return blogService.getPageOfUserBlogs(id, current);
     }
+
+    /**
+     * 滚动分页查询关注的用户的笔记
+     */
+    @GetMapping("/of/follow")
+    public Result getFollowBlogs(@RequestParam("lastId") Long lastId, @RequestParam(value = "offset", defaultValue = "0") Integer offset) {
+        return blogService.getFollowBlogs(lastId, offset);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

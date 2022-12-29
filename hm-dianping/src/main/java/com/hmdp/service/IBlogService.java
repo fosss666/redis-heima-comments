@@ -41,4 +41,8 @@ public interface IBlogService extends IService<Blog> {
      * 分页查询当前用户的blog
      */
     Result queryMyBlog(Integer current);
+    /**
+     * 滚动分页查询关注的用户的笔记
+     */
+    Result getFollowBlogs(Long lastId, Integer offset);
 }
