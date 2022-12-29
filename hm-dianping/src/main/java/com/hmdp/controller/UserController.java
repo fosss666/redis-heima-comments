@@ -18,7 +18,6 @@ import javax.servlet.http.HttpSession;
  * <p>
  * 前端控制器
  * </p>
- 
  */
 @Slf4j
 @RestController
@@ -30,6 +29,14 @@ public class UserController {
 
     @Resource
     private IUserInfoService userInfoService;
+
+    /**
+     * 根据id查询用户,注意过滤掉敏感信息
+     */
+    @GetMapping("{id}")
+    public Result getUserById(@PathVariable("id") Long id) {
+        return userService.getUserById(id);
+    }
 
     /**
      * 发送手机验证码

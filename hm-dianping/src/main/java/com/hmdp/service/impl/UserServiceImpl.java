@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.JwtUtils;
 import com.hmdp.utils.RegexUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -111,6 +113,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setNickName(USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
         baseMapper.insert(user);
         return user;
+    }
+
+    /**
+     * 根据id查询用户,注意过滤掉敏感信息
+     */
+    @Override
+    public Result getUserById(Long id) {
+        User user = baseMapper.selectById(id);
+        if (user == null) {
+            return Result.fail("该用户已注销");
+        }
+        UserDTO userDTO = new UserDTO();
+        BeanUtils.copyProperties(user, userDTO);
+        return Result.ok(userDTO);
     }
 }
 

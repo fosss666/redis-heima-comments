@@ -20,4 +20,9 @@ public interface IUserService extends IService<User> {
     // 实现登录功能
 //    Result login(LoginFormDTO loginForm, HttpSession session);
     Result login(LoginFormDTO loginForm);
+
+    /**
+     * 根据id查询用户,注意过滤掉敏感信息
+     */
+    Result getUserById(Long id);
 }
