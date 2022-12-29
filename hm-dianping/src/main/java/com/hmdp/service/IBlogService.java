@@ -33,4 +33,8 @@ public interface IBlogService extends IService<Blog> {
      * 分页查询某一用户的博客
      */
     Result getPageOfUserBlogs(Long id, Integer current);
+    /**
+     * 发布探店笔记
+     */
+    Result saveBlog(Blog blog);
 }

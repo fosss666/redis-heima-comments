@@ -8,10 +8,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import static com.hmdp.utils.RedisConstants.BLOG_LIKED_KEY;
+import static com.hmdp.utils.RedisConstants.FEED_KEY;
 import static com.hmdp.utils.SystemConstants.MAX_PAGE_SIZE;
 
 /**
@@ -39,6 +42,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private IUserService userService;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private IFollowService followService;
 
     /**
      * 修改点赞数量
@@ -184,6 +189,33 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<Blog> records = blogs.getRecords();
 
         return Result.ok(records == null ? Collections.emptyList() : records);
+    }
+
+    /**
+     * 发布探店笔记
+     */
+    @Override
+    public Result saveBlog(Blog blog) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        // 保存探店博文
+        int insert = baseMapper.insert(blog);
+        if(insert==0){
+            return Result.fail("新增笔记失败");
+        }
+        //查询该用户的所有粉丝
+        LambdaQueryWrapper<Follow> wrapper=new LambdaQueryWrapper<>();
+        wrapper.eq(Follow::getFollowUserId,user.getId());
+        List<Follow> followList = followService.list(wrapper);
+        //将发布的笔记id推送到粉丝收件箱
+        for (Follow follow : followList) {
+            String key=FEED_KEY+follow.getUserId();
+            stringRedisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+        }
+
+        // 返回笔记id
+        return Result.ok(blog.getId());
     }
 
 }
