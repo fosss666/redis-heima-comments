@@ -15,6 +15,7 @@ import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -201,21 +202,38 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         blog.setUserId(user.getId());
         // 保存探店博文
         int insert = baseMapper.insert(blog);
-        if(insert==0){
+        if (insert == 0) {
             return Result.fail("新增笔记失败");
         }
         //查询该用户的所有粉丝
-        LambdaQueryWrapper<Follow> wrapper=new LambdaQueryWrapper<>();
-        wrapper.eq(Follow::getFollowUserId,user.getId());
+        LambdaQueryWrapper<Follow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Follow::getFollowUserId, user.getId());
         List<Follow> followList = followService.list(wrapper);
         //将发布的笔记id推送到粉丝收件箱
         for (Follow follow : followList) {
-            String key=FEED_KEY+follow.getUserId();
-            stringRedisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+            String key = FEED_KEY + follow.getUserId();
+            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
         }
 
         // 返回笔记id
         return Result.ok(blog.getId());
+    }
+
+    /**
+     * 分页查询当前用户的blog
+     */
+    @Override
+    public Result queryMyBlog(Integer current) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        // 根据用户查询
+        LambdaQueryWrapper<Blog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Blog::getUserId, user.getId());
+        IPage<Blog> page = new Page<>(current, 3);
+        baseMapper.selectPage(page, wrapper);
+        // 获取当前页数据
+        List<Blog> records = page.getRecords();
+        return Result.ok(records);
     }
 
 }
