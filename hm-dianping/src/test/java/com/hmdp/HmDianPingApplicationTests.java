@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisGeoCommands;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.annotation.Resource;
@@ -28,6 +30,12 @@ class HmDianPingApplicationTests {
     void testInsert() {
         shopService.saveWithExpire("10", 10L);
     }
+
+    /**
+     * 单元测试中创建组
+     *  XGROUP create stream.orders g1 0 mkstream
+     */
+
 
     /**
      * 导入店铺数据到geo

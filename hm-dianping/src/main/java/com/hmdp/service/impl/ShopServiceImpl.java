@@ -301,7 +301,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //获取数据
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> list = results.getContent();
         //判断大小
-        if (list.size() < from) {
+        if (list.size() <= from) {
             return Result.ok(Collections.emptyList());
         }
         //存储店铺id
