@@ -13,6 +13,7 @@ import com.hmdp.utils.JwtUtils;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -150,6 +152,56 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //进行签到
         stringRedisTemplate.opsForValue().setBit(key, dayOfMonth, true);
         return Result.ok();
+    }
+
+    /**
+     * 统计连续签到此天数
+     */
+    @Override
+    public Result signCount() {
+        //拼接key
+        Long userId = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        String date = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = USER_SIGN_KEY + userId + date;
+
+        //获取当前是这个月第几天，从零开始
+        int dayOfMonth = now.getDayOfMonth() - 1;
+        //获取记录签到情况的bit数组
+        //BITFIELD key get u7 0
+        List<Long> bitField = stringRedisTemplate.opsForValue().bitField(
+                key,
+                BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0)
+        );
+        //健壮性判断
+        if (bitField == null || bitField.isEmpty()) {
+            return Result.ok();
+        }
+        //集合第一个数记录的就是签到情况
+        //判断该数是不是0或空，是则直接结束
+        Long num = bitField.get(0);
+        if (num == null || num == 0) {
+            return Result.ok();
+        }
+        //计数器
+        int count = 0;
+        //循环判断连续签到次数
+        while (true) {
+            //最后一位和1进行与运算
+            if ((num & 1) == 0) {
+                //没签到，直接结束
+                break;
+            } else {
+                //为1，计数器加一
+                count++;
+            }
+            //右移一位
+            //>>表示右移，如果该数为正，则高位补0，若为负数，则高位补1；
+            //>>>表示无符号右移，也叫逻辑右移，即若该数为正，则高位补0，而若该数为负数，则右移后高位同样补0。
+            num = num >>> 1;
+        }
+        //返回最近连续签到数
+        return Result.ok(count);
     }
 }
 

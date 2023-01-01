@@ -29,4 +29,8 @@ public interface IUserService extends IService<User> {
      * 签到功能
      */
     Result sign();
+    /**
+     * 统计连续签到此天数
+     */
+    Result signCount();
 }
