@@ -25,4 +25,8 @@ public interface IUserService extends IService<User> {
      * 根据id查询用户,注意过滤掉敏感信息
      */
     Result getUserById(Long id);
+    /**
+     * 签到功能
+     */
+    Result sign();
 }

@@ -11,6 +11,7 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.JwtUtils;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,9 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -127,6 +131,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         UserDTO userDTO = new UserDTO();
         BeanUtils.copyProperties(user, userDTO);
         return Result.ok(userDTO);
+    }
+
+    /**
+     * 签到功能
+     */
+    @Override
+    public Result sign() {
+        //获取当前用户id
+        Long userId = UserHolder.getUser().getId();
+        //获取当前日期
+        LocalDateTime now = LocalDateTime.now();
+        //拼接key  sign:userId:2022/04
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = USER_SIGN_KEY + userId + keySuffix;
+        //获取今天是这个月的第几天，注意从零开始
+        int dayOfMonth = now.getDayOfMonth() - 1;
+        //进行签到
+        stringRedisTemplate.opsForValue().setBit(key, dayOfMonth, true);
+        return Result.ok();
     }
 }
 
